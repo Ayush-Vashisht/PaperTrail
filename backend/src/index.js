@@ -1,8 +1,31 @@
-import express, { json } from "express";
-import { verify } from "jsonwebtoken";
+const express = require("express");
+const { PrismaClient } = require("@prisma/client");
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
+const cors = require("cors");
 
 const app = express();
-app.use(json());
+
+const prisma = new PrismaClient();
+
+app.use(express.json());
+app.use(cors());
+
+// Database connection
+const db = mysql.createConnection({
+  host: "localhost",
+  user: "your_username",
+  password: "your_password",
+  database: "bookstore_db",
+});
+
+db.connect((err) => {
+  if (err) {
+    console.error("Error connecting to the database:", err);
+    return;
+  }
+  console.log("Connected to the database");
+});
 
 // Middleware for authentication
 const authenticateUser = (req, res, next) => {
@@ -10,7 +33,7 @@ const authenticateUser = (req, res, next) => {
   if (!token) return res.status(401).json({ error: "Access denied" });
 
   try {
-    const verified = verify(token, "your_jwt_secret");
+    const verified = jwt.verify(token, "your_jwt_secret");
     req.user = verified;
     next();
   } catch (err) {
@@ -61,3 +84,8 @@ app.post("/api/checkout", authenticateUser, (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+// Ensure Prisma client is disconnected when the app is terminated
+process.on("beforeExit", async () => {
+  await prisma.$disconnect();
+});
